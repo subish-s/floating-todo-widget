@@ -366,3 +366,7 @@ CPU is one 24 fps loop drawing a 264x264 canvas while the widget is on screen
 | `npm run typecheck` | `tsc --noEmit` |
 | `npm run widget` | `build` then Electron |
 | `npm run widget:start` | Electron using the existing `dist/` |
+
+## License
+
+This project is licensed under the [MIT License](LICENSE).
