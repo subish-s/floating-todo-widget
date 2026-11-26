@@ -1,0 +1,61 @@
+[Unit]
+Description=Floating To-Do widget
+Documentation=man:systemd.service(5)
+# Started as part of the graphical session rather than at boot, because the
+# widget needs a display. With loginctl enable-linger the user manager is already
+# running before login, so keying off graphical-session.target is what keeps the
+# service from starting - and failing - on a machine with no session yet.
+After=graphical-session.target
+PartOf=graphical-session.target
+# Fail fast and quietly if the renderer has not been built, instead of
+# restarting every two seconds forever.
+ConditionPathExists=%h/Documents/Project/To_do_list/dist/index.html
+
+[Service]
+Type=simple
+WorkingDirectory=%h/Documents/Project/To_do_list
+
+# The real Electron binary from the project's own node_modules, not an `npm run`
+# wrapper. This is what `npm run widget:start` executes, minus two extra
+# processes, and it means systemd supervises the actual widget and can signal it
+# directly on stop. The path is resolved by npm at install time and pinned by
+# package-lock.json, so it does not move.
+ExecStart=%h/Documents/Project/To_do_list/node_modules/electron/dist/electron . --no-sandbox
+
+# --no-sandbox is required on this machine and is a deliberate trade-off.
+#
+# Chromium needs a sandbox: either unprivileged user namespaces or the SUID helper
+# in dist/chrome-sandbox. Neither is available here.
+#   * dist/chrome-sandbox is installed by npm as <user>:<user> mode 0755. Chromium
+#     only trusts it when it is root:root mode 4755, and aborts rather than fall
+#     back, because it found a helper it cannot use.
+#   * Unprivileged user namespaces are blocked by AppArmor for any binary that has
+#     no AppArmor profile, which systemd-launched services do not have. Chromium
+#     reports "No usable sandbox!" when the helper is taken out of the picture.
+#
+# Fixing the helper properly needs root, and is the better option where it is
+# available:
+#   sudo chown root:root node_modules/electron/dist/chrome-sandbox
+#   sudo chmod 4755 node_modules/electron/dist/chrome-sandbox
+#
+# Until then the sandbox is off. The exposure is limited: the renderer loads one
+# local file, runs with contextIsolation on, nodeIntegration off and no remote
+# content, and the preload exposes a fixed set of IPC methods. Running the same
+# app from a terminal does use the namespace sandbox, so this only affects the
+# service.
+
+# Restart on an unexpected exit only. Exit 0 is the deliberate "Exit" from the
+# tray menu and systemd's own SIGTERM on stop, and restarting after either would
+# make the widget impossible to close. A crash is a non-zero status or a signal,
+# which is what on-failure acts on. RestartSec keeps a genuine crash loop from
+# spinning.
+Restart=on-failure
+RestartSec=2
+SuccessExitStatus=0
+
+# Give the widget time to write its saved position and quit its windows on stop.
+KillSignal=SIGTERM
+TimeoutStopSec=15
+
+[Install]
+WantedBy=graphical-session.target

@@ -1,0 +1,24 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>To-Do List</title>
+    <!--
+      Runs before first paint so the transparent desktop window never flashes an
+      opaque page background on the way to becoming transparent. The renderer
+      bundle is loaded as a classic script (no type=module) so the file:// load
+      stays a plain document load with no module CORS restrictions.
+    -->
+    <script>
+      try {
+        if (window.desktop) document.documentElement.classList.add('fw-desktop');
+      } catch (e) {}
+    </script>
+    <link rel="stylesheet" href="./renderer.css" />
+  </head>
+  <body>
+    <div id="root"></div>
+    <script src="./renderer.js"></script>
+  </body>
+</html>

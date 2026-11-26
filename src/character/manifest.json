@@ -1,0 +1,230 @@
+{
+  "fps": 24,
+  "canvas": {
+    "width": 264,
+    "height": 264
+  },
+  "anchor": "bottom-center",
+  "animations": {
+    "No and Saying yes": {
+      "frameCount": 116,
+      "fps": 24,
+      "canvas": {
+        "width": 264,
+        "height": 264
+      },
+      "sourceSize": {
+        "width": 1080,
+        "height": 1920
+      },
+      "scale": 0.193705,
+      "baseline": 264,
+      "union": [
+        101,
+        449,
+        984,
+        1513
+      ]
+    },
+    "hai": {
+      "frameCount": 54,
+      "fps": 24,
+      "canvas": {
+        "width": 264,
+        "height": 264
+      },
+      "sourceSize": {
+        "width": 1080,
+        "height": 1920
+      },
+      "scale": 0.189573,
+      "baseline": 264,
+      "union": [
+        106,
+        448,
+        977,
+        1512
+      ]
+    },
+    "idle": {
+      "frameCount": 21,
+      "fps": 24,
+      "canvas": {
+        "width": 264,
+        "height": 264
+      },
+      "sourceSize": {
+        "width": 1080,
+        "height": 1920
+      },
+      "scale": 0.193705,
+      "baseline": 264,
+      "union": [
+        123,
+        464,
+        950,
+        1512
+      ]
+    },
+    "jump_and_wiz": {
+      "frameCount": 89,
+      "fps": 24,
+      "canvas": {
+        "width": 264,
+        "height": 264
+      },
+      "sourceSize": {
+        "width": 1080,
+        "height": 1920
+      },
+      "scale": 0.192539,
+      "baseline": 264,
+      "union": [
+        0,
+        278,
+        1073,
+        1560
+      ]
+    },
+    "keep_quite": {
+      "frameCount": 34,
+      "fps": 24,
+      "canvas": {
+        "width": 264,
+        "height": 264
+      },
+      "sourceSize": {
+        "width": 1080,
+        "height": 1920
+      },
+      "scale": 0.192077,
+      "baseline": 264,
+      "union": [
+        110,
+        474,
+        946,
+        1560
+      ]
+    },
+    "see_down": {
+      "frameCount": 20,
+      "fps": 24,
+      "canvas": {
+        "width": 264,
+        "height": 264
+      },
+      "sourceSize": {
+        "width": 1080,
+        "height": 1920
+      },
+      "scale": 0.23088,
+      "baseline": 264,
+      "union": [
+        182,
+        606,
+        876,
+        1457
+      ]
+    },
+    "see_up": {
+      "frameCount": 41,
+      "fps": 24,
+      "canvas": {
+        "width": 264,
+        "height": 264
+      },
+      "sourceSize": {
+        "width": 1080,
+        "height": 1920
+      },
+      "scale": 0.233236,
+      "baseline": 264,
+      "union": [
+        185,
+        585,
+        872,
+        1457
+      ]
+    },
+    "tilt_left": {
+      "frameCount": 56,
+      "fps": 24,
+      "canvas": {
+        "width": 264,
+        "height": 264
+      },
+      "sourceSize": {
+        "width": 1080,
+        "height": 1920
+      },
+      "scale": 0.229062,
+      "baseline": 264,
+      "union": [
+        207,
+        583,
+        1080,
+        1461
+      ]
+    },
+    "tilt_right": {
+      "frameCount": 56,
+      "fps": 24,
+      "canvas": {
+        "width": 264,
+        "height": 264
+      },
+      "sourceSize": {
+        "width": 1080,
+        "height": 1920
+      },
+      "scale": 0.229391,
+      "baseline": 264,
+      "union": [
+        0,
+        582,
+        873,
+        1462
+      ]
+    },
+    "wondering": {
+      "frameCount": 37,
+      "fps": 24,
+      "canvas": {
+        "width": 264,
+        "height": 264
+      },
+      "sourceSize": {
+        "width": 1080,
+        "height": 1920
+      },
+      "scale": 0.193705,
+      "baseline": 264,
+      "union": [
+        117,
+        358,
+        957,
+        1513
+      ]
+    },
+    "yoho_and_wink": {
+      "frameCount": 101,
+      "fps": 24,
+      "canvas": {
+        "width": 264,
+        "height": 264
+      },
+      "sourceSize": {
+        "width": 1080,
+        "height": 1920
+      },
+      "scale": 0.191159,
+      "baseline": 264,
+      "union": [
+        17,
+        457,
+        974,
+        1559
+      ]
+    }
+  }
+}

@@ -1,0 +1,24 @@
+{
+  "name": "to-do-list",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Floating desktop to-do widget with an animated assistant",
+  "main": "electron/main.js",
+  "scripts": {
+    "build": "node build.mjs",
+    "watch": "node build.mjs --watch",
+    "typecheck": "tsc --noEmit",
+    "widget": "npm run build && electron .",
+    "widget:start": "electron ."
+  },
+  "devDependencies": {
+    "@types/node": "22.10.2",
+    "@types/react": "19.1.8",
+    "@types/react-dom": "19.1.6",
+    "electron": "^33.4.11",
+    "esbuild": "^0.24.2",
+    "react": "19.1.1",
+    "react-dom": "19.1.1",
+    "typescript": "5.7.2"
+  }
+}

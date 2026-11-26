@@ -1,0 +1,824 @@
+/* FloatingWidget
+   A frameless desktop overlay: a centred animated character above 3 small
+   white-line icons, with panels dropping below the icons. There is no
+   background plate anywhere - the widget sits straight on the wallpaper and
+   relies on a soft dark glow on the glyphs for contrast, the shape and metrics
+   still follow the original ToolbarWidget.css reference. */
+
+/*
+ * The widget is a centred column: character on top, the 3 icons below it, and
+ * panels opening underneath.
+ *
+ * It is anchored to the *top* of its window, and the window itself is sized to
+ * fit exactly what is visible. That is what keeps the character nailed in place:
+ * growing the window downwards to admit a panel cannot move the top edge, and
+ * because the window is only as tall as its contents there is no empty strip
+ * left behind to swallow clicks meant for the desktop.
+ */
+.fw {
+  --fw-panel-lane: 170px; /* tallest panel, so it never needs to scroll */
+  position: fixed;
+  top: 6px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 9999;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  font-family: system-ui, -apple-system, sans-serif;
+  animation: none;
+}
+
+/*
+ * Against a screen edge the column sits on that edge, 8px in — the same
+ * padding the window adds around the measurement. Centring it would put the
+ * character back in the middle of a panel-width window and off the corner.
+ * The panel then shares that outer edge and grows inward.
+ */
+html.fw-edge-left .fw {
+  left: 8px;
+  right: auto;
+  transform: none;
+}
+
+html.fw-edge-right .fw {
+  left: auto;
+  right: 8px;
+  transform: none;
+}
+
+html.fw-edge-left .fw-character,
+html.fw-edge-left .fw-chrome {
+  align-self: flex-start;
+}
+
+html.fw-edge-right .fw-character,
+html.fw-edge-right .fw-chrome {
+  align-self: flex-end;
+}
+
+/* ---------- character ---------- */
+
+/*
+ * Nothing behind the character: it stands on its own, straight on the desktop.
+ * It is also the handle that carries the widget around the screen.
+ */
+.fw-character {
+  display: block;
+  margin: 0 0 6px;
+  padding: 0;
+  border: 0;
+  background: none;
+  line-height: 0;
+  cursor: grab;
+  touch-action: none;
+  transition: transform 0.2s ease;
+}
+
+.fw-character:hover {
+  transform: translateY(-2px);
+}
+
+.fw-character:active {
+  cursor: grabbing;
+}
+
+.fw-character:focus-visible {
+  outline: 2px solid #4a8fe0;
+  outline-offset: 3px;
+  border-radius: 40px;
+}
+
+/* Authored at 264px, so 124px is still downscaling and stays crisp. */
+.fw-character__canvas {
+  display: block;
+  width: 124px;
+  height: 124px;
+}
+
+/* ---------- main 3-icon pill ---------- */
+
+/*
+ * Black at reduced opacity behind the icons. The icons are small and white, so
+ * without a plate they disappear into a light wallpaper; the translucency keeps
+ * the desktop faintly visible through it.
+ */
+.fw-pill {
+  background-color: rgba(0, 0, 0, 0.55);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 40px;
+  padding: 4px 9px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  backdrop-filter: blur(6px);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
+}
+
+.fw-icon-btn {
+  background: none;
+  border: none;
+  color: #e6e6e6;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 5px;
+  border-radius: 50%;
+  transition: color 0.2s ease;
+}
+
+/* The old #333 hover plate would be a floating grey disc on a light wallpaper. */
+.fw-icon-btn:hover {
+  color: #ffffff;
+}
+
+.fw-icon-btn:focus-visible {
+  outline: 2px solid #4a8fe0;
+  outline-offset: 2px;
+}
+
+.fw-icon-btn--badge {
+  position: relative;
+}
+
+.fw-badge {
+  position: absolute;
+  top: 0;
+  right: 0;
+  min-width: 15px;
+  height: 15px;
+  padding: 0 3px;
+  border-radius: 40px;
+  background-color: #2b5b94;
+  color: #fff;
+  font-size: 10px;
+  font-weight: 600;
+  line-height: 15px;
+  text-align: center;
+}
+
+.fw-divider {
+  width: 1px;
+  height: 20px;
+  background-color: rgba(255, 255, 255, 0.22);
+}
+
+/* ---------- create input controls (used inside the create panel) ---------- */
+
+.fw-round-btn {
+  background-color: rgba(0, 0, 0, 0.55);
+  border: none;
+  border-radius: 50%;
+  width: 32px;
+  height: 32px;
+  flex: none;
+  color: #fff;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background-color 0.2s ease;
+}
+
+.fw-round-btn:hover {
+  background-color: rgba(0, 0, 0, 0.75);
+}
+
+.fw-round-btn--accent {
+  background-color: #2b5b94;
+}
+
+.fw-round-btn--accent:hover {
+  background-color: #33699f;
+}
+
+.fw-round-btn:focus-visible {
+  outline: 2px solid #4a8fe0;
+  outline-offset: 2px;
+}
+
+.fw-input {
+  flex: 1;
+  background: transparent;
+  border: none;
+  color: #fff;
+  padding: 0 12px;
+  font-size: 14px;
+  font-family: inherit;
+  outline: none;
+}
+
+.fw-input::placeholder {
+  color: #666;
+}
+
+/* ---------- idle auto-hide (120s) and hover-to-reveal ---------- */
+
+/*
+ * The pill and any open panel live in .fw-chrome so they can retire together.
+ * Hiding is a transition rather than an unmount, which is what makes the
+ * reveal animate instead of pop.
+ */
+.fw-chrome {
+  position: relative; /* the panel below is positioned against the pill */
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  opacity: 1;
+  transform: translateY(0) scale(1);
+  visibility: visible;
+  transition:
+    opacity 0.2s ease,
+    transform 0.32s cubic-bezier(0.22, 1.4, 0.36, 1),
+    visibility 0s;
+}
+
+.fw--chrome-hidden .fw-chrome {
+  opacity: 0;
+  transform: translateY(16px) scale(0.9);
+  pointer-events: none;
+  /* Only stop being hit-testable once the fade-out has finished. */
+  visibility: hidden;
+  transition:
+    opacity 0.2s ease,
+    transform 0.32s cubic-bezier(0.4, 0, 0.6, 1),
+    visibility 0s 0.32s;
+}
+
+/*
+ * With the toolbar gone the character is the only thing left on screen, so it
+ * breathes gently to advertise that hovering brings the options back.
+ */
+.fw--chrome-hidden .fw-character {
+  animation: fw-idle-nudge 2.6s ease-in-out infinite;
+}
+
+@keyframes fw-idle-nudge {
+  0%,
+  100% {
+    transform: translateY(0) scale(1);
+  }
+  50% {
+    transform: translateY(-5px) scale(1.04);
+  }
+}
+
+/* ---------- create panel (a small window above the pill) ---------- */
+
+.fw-create {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 2px;
+}
+
+.fw-create__label {
+  flex: none;
+  font-size: 11px;
+  color: #8e8e8e;
+  text-transform: uppercase;
+  letter-spacing: 0;
+}
+
+/* Optional deadline, grouped and labeled for each staged task. */
+.fw-datetime {
+  width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+  padding: 7px 8px !important;
+  font-size: 12px !important;
+  color: #d4d4d4 !important;
+  color-scheme: dark;
+}
+
+.fw-datetime::-webkit-calendar-picker-indicator {
+  filter: invert(0.6);
+  cursor: pointer;
+}
+
+.fw-panel--create .fw-input {
+  flex: 1;
+  min-width: 0;
+  /* Only the text field keeps a fill: a bare outline is unusable to type in. */
+  background-color: rgba(0, 0, 0, 0.45);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  border-radius: 20px;
+  color: #fff;
+  padding: 9px 14px;
+  font-size: 13px;
+  font-family: inherit;
+  outline: none;
+  transition: border-color 0.2s ease;
+}
+
+.fw-panel--create .fw-input:focus {
+  border-color: #4a8fe0;
+}
+
+.fw-panel--create .fw-input::placeholder {
+  color: #666;
+}
+
+.fw-panel--create {
+  display: flex;
+  flex-direction: column;
+}
+
+.fw-draft-list {
+  display: grid;
+  gap: 3px;
+  max-height: calc(var(--fw-panel-lane) - 76px);
+  min-height: 0;
+  overflow-y: auto;
+  padding: 2px 2px 6px;
+  scrollbar-width: thin;
+}
+
+.fw-draft {
+  padding: 2px 0 6px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.12);
+}
+
+.fw-draft:last-child {
+  border-bottom: none;
+}
+
+.fw-draft__due {
+  display: grid;
+  grid-template-columns: 38px minmax(0, 1fr);
+  align-items: center;
+  gap: 8px;
+  padding: 3px 2px 0;
+}
+
+.fw-create__actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 4px 2px 0;
+  flex: none;
+}
+
+.fw-add-row,
+.fw-add-all {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-height: 30px;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  border-radius: 6px;
+  padding: 0 10px;
+  color: #e2e2e2;
+  background: rgba(255, 255, 255, 0.06);
+  font: inherit;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.fw-add-all {
+  border-color: rgba(87, 169, 126, 0.55);
+  color: #c9f2d7;
+  background: rgba(45, 125, 82, 0.28);
+}
+
+.fw-add-row:hover,
+.fw-add-all:hover:not(:disabled) {
+  background-color: rgba(255, 255, 255, 0.14);
+}
+
+.fw-add-all:hover:not(:disabled) {
+  background-color: rgba(45, 125, 82, 0.46);
+}
+
+.fw-add-all:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+
+.fw-mini-action,
+.fw-item__delete,
+.fw-item__restore {
+  display: inline-grid;
+  place-items: center;
+  flex: none;
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  border: 0;
+  border-radius: 5px;
+  color: #969696;
+  background: transparent;
+  cursor: pointer;
+}
+
+.fw-mini-action:hover,
+.fw-item__delete:hover {
+  color: #ff8a80;
+  background: rgba(255, 138, 128, 0.12);
+}
+
+.fw-item__restore:hover {
+  color: #91e0ad;
+  background: rgba(87, 169, 126, 0.15);
+}
+
+.fw-mini-action:focus-visible,
+.fw-item__delete:focus-visible,
+.fw-item__restore:focus-visible,
+.fw-add-row:focus-visible,
+.fw-add-all:focus-visible {
+  outline: 2px solid #4a8fe0;
+  outline-offset: 2px;
+}
+
+/* ---------- reminders: two rows, then a green dot for the rest ---------- */
+
+.fw-list--reminders {
+  /* At most two deadlines plus the overflow row, so never scroll. */
+  max-height: none;
+  overflow: visible;
+}
+
+/* The "when" - plain text, no pill, so the row stays calm. */
+.fw-when {
+  margin-left: auto;
+  flex: none;
+  font-size: 11px;
+  color: #9a9a9a;
+  white-space: nowrap;
+}
+
+.fw-when--overdue {
+  color: #d9705f;
+}
+
+.fw-item--more {
+  gap: 10px;
+  color: #9a9a9a;
+  font-size: 12px;
+  border-bottom: none;
+}
+
+.fw-more__dot {
+  flex: none;
+  width: 7px;
+  height: 7px;
+  margin-left: 4px;
+  border-radius: 50%;
+  background-color: #4caf50;
+  box-shadow: 0 0 0 3px rgba(76, 175, 80, 0.16);
+}
+
+.fw-more__text {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* ---------- popover panels (below the toolbar) ---------- */
+
+/*
+ * Absolutely positioned, so it hangs below the icons without entering the
+ * layout. That is what keeps the character pinned in place, and it is why the
+ * panel is capped at the size of the lane reserved under the widget.
+ *
+ * Unlike the pill, a panel does need a plate: it carries lists and text, which
+ * are unreadable straight on a wallpaper. Semi-transparent rather than solid
+ * so the desktop still shows through.
+ */
+.fw-panel {
+  position: absolute;
+  top: calc(100% + 10px);
+  left: 50%;
+  transform: translateX(-50%);
+  width: 300px;
+  max-height: var(--fw-panel-lane);
+  background-color: rgba(0, 0, 0, 0.77);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 20px;
+  box-shadow: 0 8px 28px rgba(0, 0, 0, 0.55);
+  padding: 10px;
+  animation: fw-panel-in 0.16s ease-out;
+}
+
+@keyframes fw-panel-in {
+  from {
+    opacity: 0;
+    transform: translate(-50%, -8px);
+  }
+  to {
+    opacity: 1;
+    transform: translate(-50%, 0);
+  }
+}
+
+/* The centred entrance would pull an edge-aligned panel back to the middle. */
+html.fw-edge-left .fw-panel,
+html.fw-edge-right .fw-panel {
+  animation-name: fw-panel-in-edge;
+}
+
+html.fw-edge-left .fw-panel {
+  left: 0;
+  right: auto;
+  transform: none;
+}
+
+html.fw-edge-right .fw-panel {
+  left: auto;
+  right: 0;
+  transform: none;
+}
+
+@keyframes fw-panel-in-edge {
+  from {
+    opacity: 0;
+    transform: translateY(-8px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/*
+ * No title, no dashboard heading: just the close control, right aligned, so the
+ * panel shows the task and nothing else.
+ */
+.fw-panel__head {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  padding: 0 0 2px 0;
+}
+
+.fw-close,
+.fw-clean {
+  background: none;
+  border: none;
+  color: #a8a8a8;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2px;
+  border-radius: 50%;
+  transition: color 0.2s ease;
+}
+
+.fw-close:hover,
+.fw-clean:hover {
+  color: #fff;
+}
+
+.fw-close:focus-visible,
+.fw-clean:focus-visible {
+  outline: 2px solid #4a8fe0;
+  outline-offset: 2px;
+}
+
+.fw-clean:hover {
+  color: #ff8a80;
+}
+
+/* ---------- to-do list ---------- */
+
+.fw-list {
+  /* ~4 rows visible, anything beyond scrolls inside the reserved lane */
+  max-height: 120px;
+  overflow-y: auto;
+  padding: 6px 4px;
+  margin: 0;
+  list-style: none;
+  overscroll-behavior: contain;
+  /*
+   * Scrolls, but shows nothing. A scrollbar down the side of a 340px window is
+   * all strip and no information, and the panel is a fixed lane anyway.
+   */
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.fw-list::-webkit-scrollbar {
+  display: none;
+  width: 0;
+  height: 0;
+}
+
+/*
+ * The task list is two columns across. A column is narrow, so each task stacks
+ * its text over its timestamp instead of trying to sit on one line.
+ */
+.fw-list--tasks {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  column-gap: 14px;
+  align-content: start;
+}
+
+.fw-list--hidden {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.fw-list--tasks .fw-item {
+  flex-direction: column;
+  align-items: stretch;
+  gap: 3px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.12);
+}
+
+.fw-list--tasks .fw-item:nth-last-child(2):nth-child(odd) {
+  border-bottom: none;
+}
+
+.fw-list--tasks .fw-item__label {
+  gap: 8px;
+  align-items: flex-start;
+}
+
+.fw-list--tasks .fw-item__text {
+  white-space: normal;
+  overflow-wrap: anywhere;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+}
+
+.fw-list--tasks .fw-item__meta {
+  padding-left: 24px;
+}
+
+.fw-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 0;
+  color: #e2e2e2;
+  font-size: 13px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.12);
+}
+
+.fw-item:last-child {
+  border-bottom: none;
+}
+
+.fw-item__label {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex: 1;
+  min-width: 0;
+  cursor: pointer;
+}
+
+/*
+ * Kept deliberately quiet: the list is for reading, not for status lights. A
+ * tiny bell only appears on tasks that actually have a deadline.
+ */
+.fw-item__meta {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  flex: none;
+  color: #8e8e8e;
+}
+
+.fw-item__meta svg {
+  color: #8e8e8e;
+}
+
+.fw-item__time {
+  font-size: 11px;
+  white-space: nowrap;
+}
+
+.fw-item__text {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.fw-item__text--done {
+  text-decoration: line-through;
+  color: #8e8e8e;
+}
+
+.fw-checkbox {
+  accent-color: #2b5b94;
+  width: 16px;
+  height: 16px;
+  flex: none;
+  cursor: pointer;
+}
+
+.fw-checkbox:focus-visible {
+  outline: 2px solid #4a8fe0;
+  outline-offset: 2px;
+}
+
+/* ---------- reminders ---------- */
+
+.fw-reminder {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  padding: 8px 0;
+  border: 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.12);
+  background: none;
+  color: #e2e2e2;
+  font-family: inherit;
+  font-size: 13px;
+  text-align: left;
+  cursor: pointer;
+  transition: color 0.2s ease;
+}
+
+.fw-reminder:last-child {
+  border-bottom: none;
+}
+
+.fw-reminder svg {
+  flex: none;
+  color: #888;
+  transition: color 0.2s ease;
+}
+
+.fw-reminder:hover {
+  color: #fff;
+}
+
+.fw-reminder:hover svg {
+  color: #fff;
+}
+
+.fw-reminder:focus-visible {
+  outline: 2px solid #4a8fe0;
+  outline-offset: -2px;
+  border-radius: 4px;
+}
+
+.fw-empty {
+  margin: 0;
+  padding: 18px 4px;
+  text-align: center;
+  color: #8e8e8e;
+  font-size: 13px;
+}
+
+/* ---------- small viewports (Part 18) ----------
+ *
+ * Scoped to html.fw-browser on purpose. In the desktop app the viewport
+ * *is* the widget window (340x176), so these queries would otherwise match
+ * permanently and shrink the character and pill for every user. They exist for
+ * the widget being viewed in an ordinary, possibly phone-sized, browser.
+ */
+
+@media (max-width: 420px) {
+  html.fw-browser .fw-character__canvas {
+    width: 104px;
+    height: 104px;
+  }
+
+  html.fw-browser .fw-pill {
+    padding: 8px 16px;
+    gap: 10px;
+  }
+
+  html.fw-browser .fw-panel {
+    width: calc(100vw - 32px);
+    max-width: 300px;
+  }
+}
+
+@media (max-height: 520px) {
+  html.fw-browser .fw-character__canvas {
+    width: 92px;
+    height: 92px;
+  }
+
+  html.fw-browser .fw-character:hover {
+    transform: translateY(-1px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .fw-chrome,
+  .fw-character,
+  .fw-icon-btn,
+  .fw-round-btn,
+  .fw-input {
+    transition-duration: 0.01ms;
+  }
+
+  .fw-panel,
+  .fw--chrome-hidden .fw-character {
+    animation: none;
+  }
+}

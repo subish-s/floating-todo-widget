@@ -1,0 +1,39 @@
+/**
+ * Document-level styles.
+ *
+ * The window *is* the widget: frameless, transparent, always on top and only as
+ * wide as the column. That drives every rule here - the page never scrolls, never has
+ * an opaque background (which would paint a slab over the user's desktop), and
+ * never letterboxes the character.
+ */
+
+:root {
+  color-scheme: dark;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+  /* Transparent by default: any opaque page background would be visible
+     through the window as a rectangle sitting on the desktop. */
+  background: transparent;
+  color: #e8e8e8;
+  font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+  /*
+   * The widget is fixed, so the document has no business being a scrollable
+   * page. Anything the browser adds on its own is opted out of here, because the
+   * widget window is far narrower and shorter than any phone and a scrollbar
+   * down the side of the character is very visible at 340px.
+   */
+  overflow: hidden;
+}
+
+#root {
+  height: 100%;
+}

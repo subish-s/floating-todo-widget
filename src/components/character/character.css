@@ -1,0 +1,14 @@
+/* Character canvas.
+   The clip is pre-normalised offline: every animation is rendered on the same
+   264x264 canvas with the feet on one shared baseline, so the canvas can be a
+   fixed size and the character can never change size or shift between
+   animations (Parts 8, 26). Only the display size is set here. */
+
+.fw-character__canvas {
+  display: block;
+  /* 84px on screen: small enough to stay out of the way, large enough to read. */
+  width: 84px;
+  height: 84px;
+  /* keeps the browser from re-rasterising the blit on every hover transform */
+  will-change: transform;
+}
