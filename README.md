@@ -2,10 +2,11 @@
 
 A lightweight desktop to-do widget with an animated assistant. It is a desktop
 app and nothing else: there is no website, no dev server, and no external
-database. Tasks are persisted in Electron's main process (`electron/store.js`)
-to `tasks.v1.json` in the user-data folder using atomic temp-file writes, a
-rolling `.bak` recovery snapshot, and automatic migration from legacy
-`output.json` or `localStorage`.
+database server. Tasks are persisted in Electron's main process (`electron/store.js`)
+using an embedded **SQLite** database (`sql.js` WASM) stored at `tasks.sqlite`
+in the user-data folder, with transactional writes, atomic disk flushes, a
+rolling `.bak` recovery snapshot, and automatic migration from legacy JSON or
+`localStorage`.
 
 ## How to run
 
@@ -172,7 +173,7 @@ order across restarts. Completing a task moves it to the history panel, which is
 also oldest first.
 
 - **Create** - stage tasks one at a time with **Add task**, set an optional due date/time for each, then commit nonblank rows together with **Add all**.
-- **Tasks** - completing a task hides it from the active checklist. The history panel keeps it undoable for 24 hours; restore returns it unchecked. After 24 hours it is archived as an `archiveOnly` entry in Electron's `tasks.v1.json` store. Each trash button deletes only its own task.
+- **Tasks** - completing a task hides it from the active checklist. The history panel keeps it undoable for 24 hours; restore returns it unchecked. After 24 hours it is archived as `archive_only = 1` in Electron's `tasks.sqlite` database. Each trash button deletes only its own task.
 - **Reminders** - the bell appears only when a deadline has *arrived* and the task is still open. It does **not** appear when you save a future due date.
 
 The history panel is marked with a history icon: an eye says "look at this", but
@@ -348,7 +349,7 @@ animation looks.
 | Store | Space |
 |-------|-------|
 | Active and 24-hour recoverable tasks in renderer memory | **O(n)** |
-| Older archived tasks | **Disk only** in Electron `tasks.v1.json` |
+| Older archived tasks | **Disk only** in Electron `tasks.sqlite` |
 | Decoded animation frames | **O(F)** for resident clips, hard-capped at 64 MB. *F* is total frames in loaded clips. |
 | Drag session | **O(1)** |
 | Reminder timer and duplicate-fire guard | **O(a)** where *a* is the number of active deadline tasks |
